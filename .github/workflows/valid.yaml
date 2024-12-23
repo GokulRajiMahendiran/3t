@@ -1,21 +1,38 @@
-name: Validate PR Naming
+name: Validate PR Naming and Add Label
 
 on:
   pull_request:
     types: [opened, edited, synchronize]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   validate-pr:
-    name: Validate PR Naming
+    name: Validate PR Naming and Add Label
     runs-on: ubuntu-latest
 
     steps:
-      - name: Validate PR Title
+      - name: Check PR Naming Convention
+        id: check_pr
         run: |
           if [[ ! "${{ github.event.pull_request.title }}" =~ ^gokul# ]]; then
-            echo "Error: PR title must start with 'gokul#'."
-            exit 1
+            echo "PR title does not match the required convention. Adding label 'no work item found'."
+            echo "invalid_pr=true" >> $GITHUB_ENV
           else
             echo "PR title validation passed."
+            echo "invalid_pr=false" >> $GITHUB_ENV
           fi
+        shell: bash
+
+      - name: Add Label if PR Title is Invalid
+        if: ${{ env.invalid_pr == 'true' }}
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels \
+            -d '{"labels":["no work item found"]}'
         shell: bash
