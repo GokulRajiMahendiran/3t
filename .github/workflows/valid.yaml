@@ -36,22 +36,26 @@ jobs:
         shell: bash
 
   check-label:
-    name: Check for Added Label
+    name: Check for Added Label and Fail if Found
     runs-on: ubuntu-latest
     needs: validate-pr
     if: ${{ needs.validate-pr.outputs.valid_pr == 'false' }}  # Only run if the PR naming is invalid
 
     steps:
-      - name: Check if Label Exists
+      - name: Fetch PR Labels
+        id: fetch_labels
         run: |
-          LABELS=$(curl -s \
+          curl -s \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels)
-          if echo "$LABELS" | grep -q '"name": "no work item found"'; then
+            https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels > labels.json
+          cat labels.json
+
+      - name: Check if "no work item found" Label Exists
+        run: |
+          if grep -q '"name": "no work item found"' labels.json; then
             echo "PR labeled as 'no work item found'. Failing the job."
             exit 1
           else
-            echo "Label 'no work item found' not found. Something went wrong."
-            exit 1
+            echo "Label 'no work item found' not found. Passing the job."
           fi
