@@ -1,0 +1,21 @@
+name: Validate PR Naming
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  validate-pr:
+    name: Validate PR Naming
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate PR Title
+        run: |
+          if [[ ! "${{ github.event.pull_request.title }}" =~ ^gokul# ]]; then
+            echo "Error: PR title must start with 'gokul#'."
+            exit 1
+          else
+            echo "PR title validation passed."
+          fi
+        shell: bash
